@@ -53,3 +53,15 @@ table, th, td {
    color: #fff;
    
 }
+
+.main-header {
+   width: 100% !important; /* Hace que la barra ocupe todo el ancho de la pantalla */
+   position: fixed; /* Mantiene la barra fija en la parte superior */
+   top: 0; /* Alinea la barra con la parte superior de la pantalla */
+   left: 0; /* Asegura que la barra empiece desde el borde izquierdo */
+   z-index: 9999; /* Asegura que la barra quede encima de otros elementos */
+}
+body, html {
+   margin: 0 !important; /* Elimina cualquier margen alrededor de la página */
+   padding: 0 !important; /* Elimina cualquier padding alrededor de la página */
+}
