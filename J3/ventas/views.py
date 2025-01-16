@@ -5,12 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from decimal import Decimal
 from django.contrib import messages
-import requests # type: ignore
+import requests 
 import csv
 from django.conf import settings
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('Agg')
 import json
 
 def user_login(request):
@@ -46,7 +43,7 @@ def lobby(request):
     if request.user.is_superuser:
         return render(request, 'superuser_dashboard.html')
     else:
-        return render(request, 'usuario_dashboard.html')
+        return render(request, 'user_dashboard.html')
 
 @login_required
 def administrar_sistema(request):
