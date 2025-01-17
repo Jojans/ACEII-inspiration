@@ -40,10 +40,10 @@ def perfil_usuario(request):
 
 @login_required
 def lobby(request):
-    if request.user.is_superuser:
-        return render(request, 'superuser_dashboard.html')
+    if request.user.is_staff:
+        return render(request, 'staff_dashboard.html')
     else:
-        return render(request, 'usuario_dashboard.html')
+        return render(request, 'user_dashboard.html')
 
 @login_required
 def administrar_sistema(request):
@@ -52,6 +52,18 @@ def administrar_sistema(request):
 @login_required
 def ventas(request):
     return render(request, 'ventas.html')
+
+@login_required
+def administrar_usuarios(request):
+    return render(request, 'administrar_usuarios.html')
+
+@login_required
+def historial_ventas(request):
+    return render(request, 'historial_ventas.html')
+
+@login_required
+def administrar_inventario(request):
+    return render(request, 'administrar_inventario.html')
 
 
 
