@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.forms import UserCreationForm
 
 
@@ -16,16 +17,12 @@ def user_login(request):
             login(request, user)
             # Redirigir a la vista de lobby después de un login exitoso
             return redirect('lobby')
-        else:
-            # Si las credenciales son incorrectas, mostrar un mensaje de error
-            messages.error(request, 'Nombre de usuario o contraseña incorrectos.')
 
     return render(request, 'login.html')
 
 @login_required
 def user_logout(request):
     logout(request)
-    messages.success(request, 'Has cerrado sesión exitosamente.')
     return redirect('login')
 
 @login_required
@@ -53,6 +50,7 @@ def ventas(request):
 def administrar_usuarios(request):
     usuarios = User.objects.all()
 
+    # Agregar usuario
     if 'add_user' in request.POST:
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -89,7 +87,29 @@ def administrar_usuarios(request):
                 messages.error(request, f"Ocurrió un error al eliminar el usuario: {str(e)}")
 
         return redirect('administrar_usuarios')
+    
+    # Cambiar contraseña
+    if "change_password" in request.POST:
+        user_id = request.POST.get("user_id")
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
 
+        if user_id and new_password and confirm_password:
+            if new_password == confirm_password:
+                try:
+                    user = User.objects.get(id=user_id)
+                    user.set_password(new_password)
+                    user.save()
+                    messages.success(request, f"La contraseña para {user.username} ha sido cambiada exitosamente.")
+                except User.DoesNotExist:
+                    messages.error(request, "El usuario no existe.")
+            else:
+                messages.error(request, "Las contraseñas no coinciden.")
+        else:
+            messages.error(request, "Todos los campos son obligatorios.")
+        
+        return redirect('administrar_usuarios')
+    
     return render(request, 'administrar_usuarios.html', {'usuarios': usuarios})
 
 @login_required
