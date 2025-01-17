@@ -1,14 +1,10 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Proveedor, Product, Compra, Venta
+from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from decimal import Decimal
 from django.contrib import messages
-import requests
-import csv
-from django.conf import settings
-import json
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
+
 
 def user_login(request):
     if request.method == 'POST':
@@ -55,7 +51,46 @@ def ventas(request):
 
 @login_required
 def administrar_usuarios(request):
-    return render(request, 'administrar_usuarios.html')
+    usuarios = User.objects.all()
+
+    if 'add_user' in request.POST:
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        is_staff = request.POST.get('is_staff') == 'True'
+
+        if username and password:
+            if User.objects.filter(username=username).exists():
+                messages.error(request, "El nombre de usuario ya está registrado. Por favor, elige otro.")
+                return redirect('administrar_usuarios')
+
+            user = User.objects.create_user(username=username, password=password, email=email)
+            user.first_name = first_name
+            user.last_name = last_name
+            user.is_staff = is_staff
+            messages.success(request, f"{user.username} agregado correctamente.")
+            user.save()
+
+        return redirect('administrar_usuarios')
+                
+    # Eliminar usuario
+    if 'delete_user' in request.POST:
+        user_id = request.POST.get('user_id')  # Obtener el id del usuario
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)  # Buscar al usuario por id
+                user.delete()  # Eliminar usuario
+                messages.success(request, f"Usuario {user.username} eliminado correctamente.")
+            except User.DoesNotExist:
+                messages.error(request, f"El usuario no existe.")
+            except Exception as e:
+                messages.error(request, f"Ocurrió un error al eliminar el usuario: {str(e)}")
+
+        return redirect('administrar_usuarios')
+
+    return render(request, 'administrar_usuarios.html', {'usuarios': usuarios})
 
 @login_required
 def historial_ventas(request):
@@ -64,287 +99,4 @@ def historial_ventas(request):
 @login_required
 def administrar_inventario(request):
     return render(request, 'administrar_inventario.html')
-
-
-
-
-
-
-
-
-
-
-@login_required
-#inventario
-def product_list(request):
-    url = "https://fakestoreapi.com/products"
-    response = requests.get(url)
-    products = response.json()
-
-    # Guardar o actualizar productos sin sobrescribir el stock
-    for product_data in products:
-        # Verificar si el producto ya existe en la base de datos
-        producto, created = Product.objects.update_or_create(
-            id=product_data['id'],  # Usamos el ID para identificar el producto
-            defaults={
-                'title': product_data['title'],
-                'price': product_data['price'],
-                'description': product_data['description'],
-                'category': product_data['category'],
-                'image': product_data['image'],
-                'rating': product_data['rating']['rate'],
-            }
-        )
-        # Aquí no tocamos el campo de stock, por lo que se conserva lo que has asignado
-
-    # Filtrar productos con ID específicos
-    productos_filtrados = Product.objects.filter(id__in=[9, 10, 11, 12, 13, 14])
-
-    return render(request, 'product_list.html', {'products': productos_filtrados})
-
-@login_required
-#productos
-def productos(request):
-    # Obtener todos los productos
-    productos = Product.objects.all()
-    return render(request, 'product_list.html', {'productos': productos})
-
-@login_required
-#actualizar stock del producto
-def actualizar_stock(request, producto_id):
-    # Obtener el producto por su ID
-    producto = get_object_or_404(Product, id=producto_id)
-
-    if request.method == 'POST':
-        # Obtener el nuevo valor de stock del formulario
-        nuevo_stock = int(request.POST.get('stock', 0))
-
-        # Actualizar el stock del producto
-        producto.stock = nuevo_stock
-        producto.save()  # Guardar el nuevo valor en la base de datos
-
-        # Redirigir a la lista de productos después de la actualización
-        return redirect('product_list')  # O la vista que deseas
-
-    # Si no es un POST, renderiza un formulario para actualizar el stock
-    return render(request, 'actualizar_stock.html', {'producto': producto})
-
-@login_required
-#compras
-def compras(request):
-    productos = Product.objects.filter(id__in=[9, 10, 11, 12, 13, 14])  # Productos a comprar
-    proveedores = Proveedor.objects.all()  # Obtener todos los proveedores
-
-    if request.method == 'POST':
-        proveedor_id = request.POST.get('proveedor')
-        proveedor = Proveedor.objects.get(id=proveedor_id) if proveedor_id else None
-        
-        # Recoger las cantidades solicitadas para cada producto
-        productos_a_comprar = []
-        total_compra = 0
-        for producto in productos:
-            cantidad_pedida = int(request.POST.get(f'cantidad_{producto.id}', 0))
-
-            if cantidad_pedida > 0:
-                total_producto = producto.price * cantidad_pedida
-                productos_a_comprar.append({
-                    'producto': producto,
-                    'cantidad': cantidad_pedida,
-                    'precio': producto.price,
-                    'stock': producto.stock,  # Mostrar stock actual
-                    'total': total_producto
-                })
-                total_compra += total_producto
-
-        # Verificar si se seleccionaron productos
-        if not productos_a_comprar:
-            return render(request, 'compras.html', {
-                'productos': productos,
-                'proveedores': proveedores,
-                'error': 'Debe seleccionar al menos un producto con cantidad mayor a 0.'
-            })
-
-        # Pasar los productos a la plantilla de la factura
-        return render(request, 'factura_compra.html', {
-            'factura': productos_a_comprar,
-            'total_compra': total_compra,
-            'proveedor': proveedor
-        })
-
-    return render(request, 'compras.html', {
-        'productos': productos,
-        'proveedores': proveedores
-    })
-
-@login_required
-#cancelar compra
-def cancelar_compra(request):
-    # Redirigir a la página de compras sin hacer nada con el stock
-    return redirect('compras')  # Redirige a la página de compras
-
-@login_required
-#pago contraentrega
-def simular_pago(request):
-    if request.method == 'POST':
-        productos_a_comprar = []
-        total_compra = 0
-        
-        # Recoger los productos seleccionados y sus cantidades
-        for producto in Product.objects.filter(id__in=[9, 10, 11, 12, 13, 14]):
-            cantidad = int(request.POST.get(f'cantidad_{producto.id}', 0))
-            if cantidad > 0:
-                total_producto = producto.price * cantidad
-                productos_a_comprar.append({
-                    'producto': producto,  # Asegúrate de pasar el producto completo
-                    'cantidad': cantidad,
-                    'precio': producto.price,
-                    'total': total_producto
-                })
-                total_compra += total_producto
-
-        if not productos_a_comprar:
-            return redirect('compras')  # Si no se ha seleccionado ningún producto, redirigimos a compras
-
-        # Pasar los productos a la plantilla de factura
-        return render(request, 'factura_compra.html', {
-            'factura': productos_a_comprar,
-            'total_compra': total_compra,
-        })
-
-    return redirect('compras')  # Si no es un POST, redirigimos a compras
-
-@login_required
-#actualizar_stock
-def actualizar_stock(request):
-    if request.method == 'POST':
-        # Recoger los productos seleccionados y sus cantidades
-        productos = request.POST.getlist('productos')  # Lista de productos seleccionados
-        cantidades = request.POST.getlist('cantidades')  # Cantidades de productos seleccionados
-        
-        # Actualizar el stock
-        for producto_id, cantidad in zip(productos, cantidades):
-            producto = Product.objects.get(id=producto_id)
-            producto.stock += int(cantidad)  # Restar las cantidades de stock
-            producto.save()
-
-        # Redirigir a la vista de compras después de actualizar el stock
-        return redirect('compras')
-
-    # Si no es un POST, redirigir a compras (aunque no debería llegar aquí)
-    return redirect('compras')
-
-@login_required
-#pago pse
-def pagar_pse(request):
-    # Simulando la redirección a la página de PSE para fines educativos
-    # Aquí se simula la URL de pago, puedes ajustarla según tus necesidades
-    pse_url = 'https://www.pse.com.co/persona'  # URL simulada de PSE
-
-    return redirect(pse_url)  # Redirigir al usuario al sitio de PSE
-
-@login_required
-#ventas
-def ventas(request):
-    if request.method == 'POST':
-        productos_vendidos = []
-        total_venta = Decimal('0.00')
-        cantidades = []
-
-        # Recoger los productos seleccionados y sus cantidades
-        for producto in Product.objects.filter(id__in=[9, 10, 11, 12, 13, 14]):
-            cantidad = int(request.POST.get(f'cantidad_{producto.id}', 0))
-
-            if cantidad > 0:
-                producto.stock -= cantidad  # Actualizar stock
-                producto.save()
-
-                total = producto.price * cantidad
-
-                productos_vendidos.append({
-                    'producto': producto.title,
-                    'cantidad': cantidad,
-                    'precio': float(producto.price),
-                    'total': float(total) 
-                })
-                total_venta += total # Agregar el total de la venta
-
-        # Verifica que se haya seleccionado al menos un producto
-        if not productos_vendidos:
-            return render(request, 'ventas.html', {'productos': Product.objects.filter(id__in=[9, 10, 11, 12, 13, 14]), 'error': 'Debe seleccionar al menos un producto con cantidad mayor a 0.'})
-
-        # Guardar datos en la sesión para el CSV
-        request.session['factura'] = productos_vendidos
-        
-        # Redirigir a la página de factura con los productos vendidos
-        return render(request, 'factura.html', {
-            'factura': productos_vendidos,
-            'total_factura': float(total_venta)
-            })
-
-    # Obtener los productos a mostrar
-    productos = Product.objects.filter(id__in=[9, 10, 11, 12, 13, 14])
-    return render(request, 'ventas.html', {'productos': productos})
-
-@login_required
-#factura
-def generar_factura(request):
-    # Recuperar los datos de la factura desde la vista anterior
-    factura = request.GET.get('factura', None)
-
-    return render(request, 'factura.html', {
-        'factura': factura})
-
-@login_required
-#descargar factura
-def descargar_factura_csv(request):
-    factura = request.session.get('factura', [])
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="factura.csv"'
-
-    # Crear el escritor de CSV con delimitador estándar (coma)
-    writer = csv.writer(response)
-
-    # Encabezados del CSV
-    writer.writerow(['Producto', 'Cantidad', 'Precio Unitario', 'Total'])
-
-    # Agregar datos de la factura
-    for item in factura:
-        writer.writerow([item['producto'], item['cantidad'], item['precio'], item['total']])
-
-    return response
-
-@login_required
-#guardar proveedores
-def importar_proveedores():
-    url = "https://randomuser.me/api/?results=10&nat=us"
-    response = requests.get(url)
-    data = response.json()
-
-    # Limpia la base de datos de proveedores antiguos
-    Proveedor.objects.all().delete()
-
-    # Guarda los nuevos proveedores
-    for item in data['results']:
-        Proveedor.objects.create(
-            first_name=item['name']['first'],
-            last_name=item['name']['last'],
-            address=f"{item['location']['street']['name']} {item['location']['street']['number']}",
-            city=item['location']['city'],
-            country=item['location']['country'],
-            phone=item['phone'],
-            email=item['email'],
-            picture=item['picture']['medium']
-        )
-
-@login_required
-def proveedores(request):
-    # Importar proveedores solo si no están en la base de datos
-    if not Proveedor.objects.exists():
-        importar_proveedores()
-
-    proveedores = Proveedor.objects.all()
-
-    return render(request, 'proveedores.html', {'proveedores': proveedores})
-
-
 
