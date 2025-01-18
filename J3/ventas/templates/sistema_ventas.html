@@ -1,0 +1,91 @@
+{% load static %}
+{% block content %}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interfaz de Ventas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'index/css/sisven.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <div class="left-section">
+        <center><h3>Registrar Venta</h3></center>
+        <div class="inline-group">
+            <div class="input-group">
+                <label for="cantidad">Cantidad</label>
+                <input type="number" id="cantidad" name="cantidad">
+            </div>
+            <div class="input-group">
+                <label for="codigo">Código</label>
+                <input type="text" id="codigo" name="codigo">
+            </div>
+            <button class="button-red" style="margin-left: 10px;">X</button>
+        </div>
+        <!-- Eliminé la hora debajo de cantidad y código -->
+        <div class="product-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Cantidad</th>
+                        <th>Hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="producto"></td>
+                        <td><input type="number" name="precio"></td>
+                        <td><input type="number" name="numero"></td>
+                        <td><input type="time" name="hora_venta"></td>
+                    </tr>
+                    <!-- Agregar más filas según sea necesario -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="right-section container-fluid">
+        <center><h3>Detalles de Caja</h3></center>
+        <div class="input-group">
+            <label for="ventas_dia">Ventas del Día</label>
+            <input type="text" id="ventas_dia" name="ventas_dia" disabled>
+        </div>
+        <div class="input-group">
+            <label for="ganancias">Ganancias</label>
+            <input type="text" id="ganancias" name="ganancias" disabled>
+        </div>
+        <div class="input-group">
+            <label for="caja_inicial">Caja Inicial del Día</label>
+            <input type="text" id="caja_inicial" name="caja_inicial" disabled>
+        </div>
+        <div class="input-group">
+            <label for="efectivo_en_caja">Efectivo en Caja</label>
+            <input type="text" id="efectivo_en_caja" name="efectivo_en_caja" disabled>
+        </div>
+        <center><h3>Producto Actual</h3></center>
+        <div class="input-group">
+            <label for="nombre_producto">Nombre Producto</label>
+            <input type="text" id="nombre_producto" name="nombre_producto">
+        </div>
+        <div class="input-group">
+            <label for="precio_unitario">Precio por Unidad</label>
+            <input type="number" id="precio_unitario" name="precio_unitario">
+        </div>
+        <div class="input-group">
+            <label for="total_venta">Total de Esta Venta</label>
+            <input type="text" id="total_venta" name="total_venta" disabled>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'lobby' %}" class="btn btn-danger btn-lg">Regresar</a>
+</div>
+
+</body>
+</html>
+{% endblock %}

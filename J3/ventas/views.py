@@ -43,7 +43,7 @@ def administrar_sistema(request):
 
 @login_required
 def ventas(request):
-    return render(request, 'ventas.html')
+    return render(request, 'sistema_ventas.html')
 
 @login_required
 def administrar_usuarios(request):
