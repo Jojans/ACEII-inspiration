@@ -46,8 +46,44 @@ body {
 .inline-group .input-group {
     width: 48%; /* Para que ocupen el mismo espacio */
 }
+
 .product-container {
-    max-height: 200px;
+    max-height: 1000px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f4f4f4;
+}
+
+.table {
+    width: 100%; /* Aseguramos que ocupe el 100% del contenedor */
+    margin-top: 10px;
+    border-collapse: collapse; /* Evita espacios entre celdas */
+}
+
+.table td, .table th {
+    padding: 5px; /* Reducimos el padding de las celdas */
+    border: 1px solid #ddd;
+    text-align: center;
+    font-size: 14px; /* Reducimos el tamaño de la fuente */
+}
+
+.table th {
+    background-color: #ddd;
+}
+
+.table input {
+    width: 90%; /* Hacemos que los inputs sean más pequeños dentro de las celdas */
+    padding: 5px;
+    font-size: 14px; /* Reducimos el tamaño de los inputs */
+    margin: 0 auto; /* Centra los inputs */
+    box-sizing: border-box;
+}
+
+
+/* .product-container {
+    max-height: 1000px;
     overflow-y: auto;
     border: 1px solid #ddd;
     margin-top: 10px;
@@ -66,7 +102,7 @@ body {
 }
 .table th {
     background-color: #ddd;
-}
+} */
 .button {
     padding: 10px 20px;
     background-color: #333;

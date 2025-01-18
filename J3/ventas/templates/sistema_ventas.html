@@ -16,15 +16,14 @@
         <div class="inline-group">
             <div class="input-group">
                 <label for="cantidad">Cantidad</label>
-                <input type="number" id="cantidad" name="cantidad">
+                <input type="number" id="cantidad" name="cantidad" value="1" min="1">
             </div>
             <div class="input-group">
                 <label for="codigo">Código</label>
-                <input type="text" id="codigo" name="codigo">
+                <input type="number" id="codigo" name="codigo" min="1">
             </div>
             <button class="button-red" style="margin-left: 10px;">X</button>
         </div>
-        <!-- Eliminé la hora debajo de cantidad y código -->
         <div class="product-container">
             <table class="table">
                 <thead>
@@ -42,7 +41,6 @@
                         <td><input type="number" name="numero"></td>
                         <td><input type="time" name="hora_venta"></td>
                     </tr>
-                    <!-- Agregar más filas según sea necesario -->
                 </tbody>
             </table>
         </div>
