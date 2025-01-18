@@ -9,7 +9,7 @@ body {
     margin-bottom: 20px;
 }
 .left-section {
-    width: 66%; /* 2/3 del ancho */
+    width: 60%; /* 2/3 del ancho */
     padding: 10px;
     border: 1px solid #000;
     border-radius: 5px;
@@ -17,7 +17,7 @@ body {
     margin-right: 10px; /* Margen entre los dos contenedores */
 }
 .right-section {
-    width: 32%; /* 1/3 del ancho */
+    width: 40%; /* 1/3 del ancho */
     padding: 10px;
     border: 1px solid #000;
     border-radius: 5px;
