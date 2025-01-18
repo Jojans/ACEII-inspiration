@@ -3,8 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.forms import UserCreationForm
+from .models import Producto
 
 
 def user_login(request):
@@ -118,5 +117,76 @@ def historial_ventas(request):
 
 @login_required
 def administrar_inventario(request):
-    return render(request, 'administrar_inventario.html')
+    productos = Producto.objects.all()
+
+    # Agregar producto
+    if 'add_product' in request.POST:
+        codigo = request.POST.get('codigo')
+        codigo_barras = request.POST.get('codigo_barras')
+        nombre = request.POST.get('nombre')
+        cantidad = request.POST.get('cantidad')
+        precio_interno = request.POST.get('precio_interno')
+        precio_publico = request.POST.get('precio_publico')
+
+        if all([codigo, codigo_barras, nombre, cantidad, precio_interno, precio_publico]):
+            try:
+                Producto.objects.create(
+                    codigo=codigo,
+                    codigo_barras=codigo_barras,
+                    nombre=nombre,
+                    cantidad=int(cantidad),
+                    precio_interno=float(precio_interno),
+                    precio_publico=float(precio_publico),
+                )
+                messages.success(request, f"Producto '{nombre}' agregado correctamente.")
+            except Exception as e:
+                messages.error(request, f"Ocurrió un error al agregar el producto: {str(e)}")
+        else:
+            messages.error(request, "Todos los campos son obligatorios.")
+
+        return redirect('administrar_inventario')
+
+    # Modificar cantidades
+    if 'modificar_cantidad' in request.POST:
+        producto_id = request.POST.get('producto_id')
+        nueva_cantidad = int(request.POST.get('nueva_cantidad'))
+
+        try:
+            producto = Producto.objects.get(id=producto_id)
+            producto.cantidad = nueva_cantidad
+            producto.save()
+            messages.success(request, f"Cantidad de '{producto.nombre}' actualizada.")
+        except Producto.DoesNotExist:
+            messages.error(request, "El producto no existe.")
+        return redirect('administrar_inventario')
+
+    # Modificar precios
+    if 'modificar_precio' in request.POST:
+        producto_id = request.POST.get('producto_id')
+        nuevo_precio_interno = float(request.POST.get('nuevo_precio_interno'))
+        nuevo_precio_publico = float(request.POST.get('nuevo_precio_publico'))
+
+        try:
+            producto = Producto.objects.get(id=producto_id)
+            producto.precio_interno = nuevo_precio_interno
+            producto.precio_publico = nuevo_precio_publico
+            producto.save()
+            messages.success(request, f"Precios de '{producto.nombre}' actualizados.")
+        except Producto.DoesNotExist:
+            messages.error(request, "El producto no existe.")
+        return redirect('administrar_inventario')
+
+    # Eliminar producto
+    if 'eliminar_producto' in request.POST:
+        producto_id = request.POST.get('producto_id')
+
+        try:
+            producto = Producto.objects.get(id=producto_id)
+            producto.delete()
+            messages.success(request, f"Producto '{producto.nombre}' eliminado.")
+        except Producto.DoesNotExist:
+            messages.error(request, "El producto no existe.")
+        return redirect('administrar_inventario')
+    
+    return render(request, 'administrar_inventario.html', {'productos': productos})
 
