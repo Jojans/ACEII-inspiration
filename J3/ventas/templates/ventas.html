@@ -1,5 +1,8 @@
+{% extends "base.html" %}
 {% load static %}
+{% load widget_tweaks %}
 {% block content %}
+
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -20,9 +23,14 @@
             </div>
             <div class="input-group">
                 <label for="codigo">Código</label>
-                <input type="number" id="codigo" name="codigo" min="1">
+                <input type="number" id="codigo" name="codigo">
             </div>
-            <button class="button-red" style="margin-left: 10px;">X</button>
+            <div>
+                <button class="button-red" style="margin-left: 10px;">X</button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-success" id="addProductBtn">Agregar</button>
+            </div>
         </div>
         <div class="product-container">
             <table class="table">
@@ -32,15 +40,12 @@
                         <th>Precio</th>
                         <th>Cantidad</th>
                         <th>Hora</th>
+                        <th>Check</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td><input type="text" name="producto"></td>
-                        <td><input type="number" name="precio"></td>
-                        <td><input type="number" name="numero"></td>
-                        <td><input type="time" name="hora_venta"></td>
-                    </tr>
+                <!-- Las filas se agregarán aquí dinámicamente -->  
+                <tbody id="productTableBody">
+            
                 </tbody>
             </table>
         </div>
@@ -58,7 +63,7 @@
         </div>
         <div class="input-group">
             <label for="caja_inicial">Caja Inicial del Día</label>
-            <input type="text" id="caja_inicial" name="caja_inicial" disabled>
+            <input type="text" id="caja_inicial" name="caja_inicial" value="{{ caja_inicial }}" disabled>
         </div>
         <div class="input-group">
             <label for="efectivo_en_caja">Efectivo en Caja</label>
@@ -67,11 +72,11 @@
         <center><h3>Producto Actual</h3></center>
         <div class="input-group">
             <label for="nombre_producto">Nombre Producto</label>
-            <input type="text" id="nombre_producto" name="nombre_producto">
+            <input type="text" id="nombre_producto" name="nombre_producto" disabled>
         </div>
         <div class="input-group">
             <label for="precio_unitario">Precio por Unidad</label>
-            <input type="number" id="precio_unitario" name="precio_unitario">
+            <input type="number" id="precio_unitario" name="precio_unitario" disabled>
         </div>
         <div class="input-group">
             <label for="total_venta">Total de Esta Venta</label>
@@ -82,8 +87,187 @@
 
 <div class="mt-4">
     <a href="{% url 'lobby' %}" class="btn btn-danger btn-lg">Regresar</a>
+
+    <!-- Botón Fijar Caja Inicial -->
+    <button type="button" class="btn btn-primary btn-lg float-end" data-bs-toggle="modal" data-bs-target="#setCajaInicialModal">
+        Fijar Caja Inicial
+    </button>    
+
+    <!-- Botón Cerrar Caja -->
+    <button type="button" class="btn btn-secondary btn-lg float-end" id="cerrarCajaBtn">
+        Cerrar Caja
+    </button>
 </div>
+
+<!-- Modal para fijar caja inicial -->
+<div class="modal fade" id="setCajaInicialModal" tabindex="-1" aria-labelledby="setCajaInicialLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setCajaInicialLabel">Fijar Caja Inicial</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="valor_caja_inicial" class="form-label">Valor de la Caja Inicial</label>
+                        <input type="number" class="form-control" id="valor_caja_inicial" name="valor_caja_inicial" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" name="set_caja_inicial" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de cierre de caja -->
+<div class="modal fade" id="confirmCerrarCajaModal" tabindex="-1" aria-labelledby="confirmCerrarCajaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmCerrarCajaModalLabel">Confirmar Cierre de Caja</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          ¿Está seguro de que desea cerrar la caja? Esta acción eliminará los productos de la venta.
+        </div>
+        <div class="modal-footer">
+          <!-- El botón "No" ahora tiene el atributo data-dismiss="modal" -->
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+          <button type="button" class="btn btn-danger" id="confirmCerrarCajaBtn">Sí, cerrar caja</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Bootstrap JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tableBody = document.getElementById('productTableBody');
+        const addProductBtn = document.getElementById('addProductBtn');
+        const codigoInput = document.getElementById('codigo');
+
+        // Recuperar los productos guardados en localStorage
+        const savedProducts = JSON.parse(localStorage.getItem('products')) || [];
+
+        // Función para agregar una fila a la tabla
+        function addRowToTable(product) {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${product.nombre}</td>
+                <td>${product.precio}</td>
+                <td>${product.cantidad}</td>
+                <td>${new Date().toLocaleTimeString()}</td>
+                <td><input type="checkbox"></td>
+            `;
+            tableBody.appendChild(newRow);
+        }
+
+        // Función para actualizar la tabla con los productos guardados
+        function updateTableFromStorage() {
+            tableBody.innerHTML = ''; // Limpiar la tabla actual
+            savedProducts.forEach(product => {
+                addRowToTable(product); // Agregar cada producto a la tabla
+            });
+        }
+
+        // Llamar a la función para actualizar la tabla al cargar la página
+        updateTableFromStorage();
+
+        // Función para obtener el producto desde el servidor
+        function fetchProduct() {
+            const codigo = document.getElementById('codigo').value;
+
+            if (!codigo) {
+                alert('Por favor ingresa un código o código de barras');
+                return;
+            }
+
+            // Hacer la solicitud AJAX para obtener el producto
+            fetch(`/obtener_producto/?codigo=${codigo}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        // Crear el objeto producto
+                        const product = {
+                            nombre: data.nombre,
+                            precio: data.precio,
+                            cantidad: 1,  // Cantidad predeterminada
+                            codigo: data.codigo,
+                        };
+
+                        // Agregar el producto a la tabla
+                        addRowToTable(product);
+
+                        // Guardar el producto en localStorage
+                        savedProducts.push(product);
+                        localStorage.setItem('products', JSON.stringify(savedProducts)); // Guardar en localStorage
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al obtener el producto:', error);
+                    alert('Hubo un error al obtener el producto.');
+                });
+
+                savedProducts.push(product);
+                localStorage.setItem('products', JSON.stringify(savedProducts));
+        }
+
+        // Manejar el clic en el botón "Agregar"
+        addProductBtn.addEventListener('click', fetchProduct);
+
+        // Manejar el evento 'Enter' al presionar la tecla en el campo código
+        codigoInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Evitar el comportamiento por defecto (enviar formulario, si aplica)
+                fetchProduct(); // Llamar a la función para obtener el producto
+            }
+        });
+    });
+
+    document.getElementById('cerrarCajaBtn').addEventListener('click', function() {
+        // Mostrar el modal de confirmación
+        $('#confirmCerrarCajaModal').modal('show');
+    });
+
+    // Evento cuando se confirma el cierre de caja
+    document.getElementById('confirmCerrarCajaBtn').addEventListener('click', function() {
+        localStorage.removeItem('products');  // Eliminar productos del localStorage
+
+        actualizarTablaProductos();  // Esta es una función ficticia para actualizar la tabla
+
+        // Cerrar el modal después de la confirmación
+        $('#confirmCerrarCajaModal').modal('hide');
+    });
+
+    // Función para actualizar la tabla de productos (dependiendo de tu implementación)
+    function actualizarTablaProductos() {
+        location.reload();  // Recargar la página para actualizar la tabla vacía
+    }
+
+    // Cerrar el modal si se hace clic en el botón No
+    $('#confirmCerrarCajaModal .btn-secondary').click(function() {
+        $('#confirmCerrarCajaModal').modal('hide');
+    });
+
+    // Cerrar el modal al hacer clic en la X
+    $('#confirmCerrarCajaModal .close').click(function() {
+        $('#confirmCerrarCajaModal').modal('hide');
+    });
+</script>
 
 </body>
 </html>
+
 {% endblock %}

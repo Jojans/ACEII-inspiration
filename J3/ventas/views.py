@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import Producto
+from django.http import JsonResponse  
 
 
 def user_login(request):
@@ -43,7 +44,43 @@ def administrar_sistema(request):
 
 @login_required
 def ventas(request):
-    return render(request, 'ventas.html')
+    productos = Producto.objects.all()
+    if request.method == 'POST':
+        if 'set_caja_inicial' in request.POST:
+            valor_caja_inicial = request.POST.get('valor_caja_inicial')
+            
+            # Convertir el valor a float y formatearlo como dinero
+            valor_caja_inicial = float(valor_caja_inicial)
+            request.session['caja_inicial'] = f"${valor_caja_inicial:,.2f}"
+            
+            return redirect('ventas')
+    
+    # Obtener el valor de la caja inicial (si existe)
+    caja_inicial = request.session.get('caja_inicial', '')
+
+    return render(request, 'ventas.html', {'caja_inicial': caja_inicial, 'productos': productos})
+
+@login_required
+def obtener_producto(request):
+    # Obtener el código del producto desde la solicitud (puede ser código o código de barras)
+    codigo = request.GET.get('codigo', '').strip()
+
+    if not codigo:
+        return JsonResponse({'error': 'Código o código de barras no proporcionado'}, status=400)
+
+    # Buscar producto por código o código de barras
+    producto = Producto.objects.filter(codigo=codigo).first() or Producto.objects.filter(codigo_barras=codigo).first()
+
+    if producto:
+        # Retornar los detalles del producto
+        data = {
+            'nombre': producto.nombre,
+            'precio': str(producto.precio_publico),
+            'codigo': producto.codigo,
+        }
+        return JsonResponse(data)
+    else:
+        return JsonResponse({'error': 'Producto no encontrado'}, status=404)
 
 @login_required
 def administrar_usuarios(request):

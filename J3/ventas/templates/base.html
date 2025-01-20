@@ -103,7 +103,7 @@
             </a>
             {% endif %}
             <div class="dropdown-divider"></div>
-            <a href="{% url 'logout' %}" class="dropdown-item text-danger">
+            <a href="{% url 'logout' %}" id="logoutBtn" class="dropdown-item text-danger">
               <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
             </a>
           </div>
@@ -282,6 +282,18 @@
   <script src="{% static 'index/DataTables/Buttons-2.0.1/js/buttons.html5.min.js' %}"></script>
   <script src="{% static 'index/DataTables/Buttons-2.0.1/js/pdfmaker.min.js' %}"></script>
   <script type="text/javascript" charset="utf8" src="{% static 'index/js/main.js' %}"></script>
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', function (e) {
+        e.preventDefault(); // Evita la redirección inmediata
+
+        // Vaciar Local Storage
+        localStorage.removeItem('products');
+
+        // Redirigir al endpoint de logout
+        window.location.href = "{% url 'logout' %}";
+    });
+</script>
+
 </body>
 
 </html>
