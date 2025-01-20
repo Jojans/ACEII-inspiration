@@ -155,9 +155,16 @@
         const tableBody = document.getElementById('productTableBody');
         const addProductBtn = document.getElementById('addProductBtn');
         const codigoInput = document.getElementById('codigo');
+        const ventasDiaInput = document.getElementById('ventas_dia');
+        const efectivoEnCajaInput = document.getElementById('efectivo_en_caja');
+        const cajaInicialInput = document.getElementById('caja_inicial');
 
         // Recuperar los productos guardados en localStorage
         const savedProducts = JSON.parse(localStorage.getItem('products')) || [];
+
+        // Recuperar el valor de la caja inicial desde localStorage
+        const savedCajaInicial = parseFloat(localStorage.getItem('caja_inicial')) || 0;
+        cajaInicialInput.value = savedCajaInicial.toFixed(2);
 
         // Función para agregar una fila a la tabla
         function addRowToTable(product) {
@@ -170,6 +177,18 @@
                 <td><input type="checkbox"></td>
             `;
             tableBody.appendChild(newRow);
+
+            // Actualizar el campo de "Producto Actual" con el nombre del último producto agregado
+            document.getElementById('nombre_producto').value = product.nombre;
+
+            // Actualizar el campo de "Precio por Unidad" con el precio del último producto agregado
+            document.getElementById('precio_unitario').value = product.precio;
+
+            // Calcular el total de la venta (cantidad * precio)
+            const totalVenta = product.cantidad * product.precio;
+
+            // Mostrar el total de la venta en el campo correspondiente
+            document.getElementById('total_venta').value = totalVenta.toFixed(2);
         }
 
         // Función para actualizar la tabla con los productos guardados
@@ -180,12 +199,31 @@
             });
         }
 
+        // Función para calcular el total de las ventas del día
+        function calculateTotalSales() {
+            let total = 0;
+            savedProducts.forEach(product => {
+                total += product.precio * product.cantidad; // Precio * Cantidad
+            });
+            ventasDiaInput.value = total.toFixed(2);
+            updateEfectivoEnCaja(total);
+        }
+
+        // Función para actualizar el efectivo en caja
+        function updateEfectivoEnCaja(ventasDelDia) {
+            const cajaInicial = parseFloat(cajaInicialInput.value) || 0; 
+            const efectivoEnCaja = cajaInicial + ventasDelDia; // Sumar caja inicial + ventas del día
+            efectivoEnCajaInput.value = efectivoEnCaja.toFixed(2);
+        }
+
         // Llamar a la función para actualizar la tabla al cargar la página
         updateTableFromStorage();
+        calculateTotalSales();
 
         // Función para obtener el producto desde el servidor
         function fetchProduct() {
             const codigo = document.getElementById('codigo').value;
+            const cantidad = document.getElementById('cantidad').value;
 
             if (!codigo) {
                 alert('Por favor ingresa un código o código de barras');
@@ -203,7 +241,7 @@
                         const product = {
                             nombre: data.nombre,
                             precio: data.precio,
-                            cantidad: 1,  // Cantidad predeterminada
+                            cantidad: parseInt(cantidad, 10),
                             codigo: data.codigo,
                         };
 
@@ -212,17 +250,18 @@
 
                         // Guardar el producto en localStorage
                         savedProducts.push(product);
-                        localStorage.setItem('products', JSON.stringify(savedProducts)); // Guardar en localStorage
+                        localStorage.setItem('products', JSON.stringify(savedProducts));
+
+                        // Actualizar el total de ventas
+                        calculateTotalSales();
                     }
                 })
                 .catch(error => {
                     console.error('Error al obtener el producto:', error);
                     alert('Hubo un error al obtener el producto.');
                 });
-
-                savedProducts.push(product);
-                localStorage.setItem('products', JSON.stringify(savedProducts));
         }
+
 
         // Manejar el clic en el botón "Agregar"
         addProductBtn.addEventListener('click', fetchProduct);
@@ -234,37 +273,67 @@
                 fetchProduct(); // Llamar a la función para obtener el producto
             }
         });
+
+        // Manejar el clic en el botón "Fijar Caja Inicial" en el modal
+        document.querySelector('#setCajaInicialModal button[type="submit"]').addEventListener('click', function(event) {
+            event.preventDefault();  // Prevenir el comportamiento por defecto del formulario
+
+            // Obtener el valor de la caja inicial ingresado en el modal
+            const valorCajaInicial = parseFloat(document.getElementById('valor_caja_inicial').value) || 0;
+
+            // Actualizar el campo Caja Inicial en la interfaz principal
+            cajaInicialInput.value = valorCajaInicial.toFixed(2);
+
+            // Guardar el valor en localStorage
+            localStorage.setItem('caja_inicial', valorCajaInicial.toFixed(2));
+
+            // Cerrar el modal
+            $('#setCajaInicialModal').modal('hide');
+
+            // Recalcular el efectivo en caja
+            calculateTotalSales();
+        });
+
+        // Manejar el clic en el botón "Cerrar Caja"
+        document.getElementById('cerrarCajaBtn').addEventListener('click', function() {
+            // Mostrar el modal de confirmación
+            $('#confirmCerrarCajaModal').modal('show');
+        });
+
+        // Evento cuando se confirma el cierre de caja
+        document.getElementById('confirmCerrarCajaBtn').addEventListener('click', function() {
+            localStorage.removeItem('products');  // Eliminar productos del localStorage
+
+            actualizarTablaProductos();  // Esta es una función ficticia para actualizar la tabla
+
+            // Cerrar el modal después de la confirmación
+            $('#confirmCerrarCajaModal').modal('hide');
+        });
+
+        // Función para actualizar la tabla de productos (dependiendo de tu implementación)
+        function actualizarTablaProductos() {
+            location.reload();  // Recargar la página para actualizar la tabla vacía
+        }
+
+        // Cerrar el modal si se hace clic en el botón No
+        $('#confirmCerrarCajaModal .btn-secondary').click(function() {
+            $('#confirmCerrarCajaModal').modal('hide');
+        });
+
+        // Cerrar el modal al hacer clic en la X
+        $('#confirmCerrarCajaModal .close').click(function() {
+            $('#confirmCerrarCajaModal').modal('hide');
+        });
+
+        
+
+
+
+
     });
 
-    document.getElementById('cerrarCajaBtn').addEventListener('click', function() {
-        // Mostrar el modal de confirmación
-        $('#confirmCerrarCajaModal').modal('show');
-    });
 
-    // Evento cuando se confirma el cierre de caja
-    document.getElementById('confirmCerrarCajaBtn').addEventListener('click', function() {
-        localStorage.removeItem('products');  // Eliminar productos del localStorage
 
-        actualizarTablaProductos();  // Esta es una función ficticia para actualizar la tabla
-
-        // Cerrar el modal después de la confirmación
-        $('#confirmCerrarCajaModal').modal('hide');
-    });
-
-    // Función para actualizar la tabla de productos (dependiendo de tu implementación)
-    function actualizarTablaProductos() {
-        location.reload();  // Recargar la página para actualizar la tabla vacía
-    }
-
-    // Cerrar el modal si se hace clic en el botón No
-    $('#confirmCerrarCajaModal .btn-secondary').click(function() {
-        $('#confirmCerrarCajaModal').modal('hide');
-    });
-
-    // Cerrar el modal al hacer clic en la X
-    $('#confirmCerrarCajaModal .close').click(function() {
-        $('#confirmCerrarCajaModal').modal('hide');
-    });
 </script>
 
 </body>

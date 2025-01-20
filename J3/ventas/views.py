@@ -75,7 +75,7 @@ def obtener_producto(request):
         # Retornar los detalles del producto
         data = {
             'nombre': producto.nombre,
-            'precio': str(producto.precio_publico),
+            'precio': producto.precio_publico,
             'codigo': producto.codigo,
         }
         return JsonResponse(data)
