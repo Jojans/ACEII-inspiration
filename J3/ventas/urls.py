@@ -13,4 +13,9 @@ urlpatterns = [
     path('administrar-usuarios/', views.administrar_usuarios, name='administrar_usuarios'),
     path('historial-ventas/', views.historial_ventas, name='historial_ventas'),
     path('administrar-inventario/', views.administrar_inventario, name='administrar_inventario'),
+    path('historial_ventas/', views.historial_ventas, name='historial_ventas'),
+    path('generar_pdf/', views.generar_pdf, name='generar_pdf'),
+    path('generar_excel/', views.generar_excel, name='generar_excel'),
+    path('cerrar-caja/', views.cerrar_caja, name='cerrar_caja'),  # Ruta para cerrar la caja
 ]  
+

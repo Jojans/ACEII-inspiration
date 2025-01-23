@@ -81,21 +81,51 @@
         </div>
     </div>
 
-    <div class="mt-4">
+<!--     <div class="mt-4">
+
         <a href="{% url 'lobby' %}" class="btn btn-danger btn-lg">Regresar</a>
 
-        <!-- Botón Fijar Caja Inicial -->
+        
         <button type="button" class="btn btn-primary btn-lg float-end" data-bs-toggle="modal" data-bs-target="#setCajaInicialModal">
             Fijar Caja Inicial
         </button>    
 
-        <!-- Botón Cerrar Caja -->
+        
         <button type="button" class="btn btn-secondary btn-lg float-end" id="cerrarCajaBtn">
             Cerrar Caja
         </button>
     </div>
+-->
+    
 
-    <!-- Modal para fijar caja inicial -->
+<div class="mt-4">
+    <a href="{% url 'lobby' %}" class="btn btn-danger btn-lg">Regresar</a>
+
+    <!-- Botón Fijar Caja Inicial -->
+    <button type="button" class="btn btn-primary btn-lg float-end" data-bs-toggle="modal" data-bs-target="#setCajaInicialModal">
+        Fijar Caja Inicial
+    </button>    
+
+    <!-- Botón Cerrar Caja -->
+    <button type="button" class="btn btn-secondary btn-lg float-end" id="cerrarCajaBtn" data-bs-toggle="modal" data-bs-target="#confirmCerrarCajaModal">
+        Cerrar Caja
+    </button>
+</div>
+
+<!-- Formulario para Cerrar Caja -->
+<form method="POST" action="{% url 'cerrar_caja' %}">
+    {% csrf_token %}
+    <!-- Campo oculto para enviar los productos vendidos como JSON -->
+    <input type="hidden" name="productos_vendidos" value="{{ productos_vendidos_json }}">
+    
+    <button type="submit" class="btn btn-secondary btn-lg float-end">
+        Cerrar Caja
+    </button>
+</form>
+
+
+
+<!-- Modal para fijar caja inicial -->
     <div class="modal fade" id="setCajaInicialModal" tabindex="-1" aria-labelledby="setCajaInicialLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Historial de Ventas</h1>
+
+    <!-- Mostrar mensajes de éxito y error -->
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Botones para descargar historial en PDF o Excel -->
+    <div class="text-center mb-4">
+        <a href="{% url 'generar_pdf' %}" class="btn btn-primary">Descargar PDF</a>
+        <a href="{% url 'generar_excel' %}" class="btn btn-success">Descargar Excel</a>
+    </div>
+
+    <!-- Tabla con el historial de ventas -->
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Total</th>
+                <th>Fecha de Venta</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for venta in ventas %}
+            <tr>
+                <td>{{ venta.producto.nombre }}</td>
+                <td>{{ venta.cantidad }}</td>
+                <td>${{ venta.precio }}</td>
+                <td>${{ venta.total }}</td>
+                <td>{{ venta.fecha_venta|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Botón para regresar -->
+    <div class="text-end mb-3">
+        <a href="{% url 'administrar_sistema' %}" class="btn btn-danger">Regresar</a>
+    </div>
+
+</div>
+
+<!-- Bootstrap JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+{% endblock %}

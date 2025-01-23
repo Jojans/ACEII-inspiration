@@ -5,6 +5,13 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import Producto
 from django.http import JsonResponse  
+from .models import Producto, HistorialVenta
+import json
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from django.http import HttpResponse
+from openpyxl import Workbook
+from django.utils import timezone
 
 
 def user_login(request):
@@ -45,20 +52,55 @@ def administrar_sistema(request):
 @login_required
 def ventas(request):
     productos = Producto.objects.all()
+
+    # Si se está enviando la caja inicial, la guardamos en la sesión
     if request.method == 'POST':
         if 'set_caja_inicial' in request.POST:
             valor_caja_inicial = request.POST.get('valor_caja_inicial')
-            
-            # Convertir el valor a float y formatearlo como dinero
             valor_caja_inicial = float(valor_caja_inicial)
             request.session['caja_inicial'] = f"${valor_caja_inicial:,.2f}"
-            
             return redirect('ventas')
-    
+
+        # Si se está agregando un producto, lo guardamos en la sesión
+        if 'agregar_producto' in request.POST:
+            producto_codigo = request.POST.get('producto_codigo')
+            cantidad = int(request.POST.get('cantidad', 1))
+            
+            producto = Producto.objects.get(codigo=producto_codigo)
+            
+            # Recuperamos los productos vendidos desde la sesión, si ya hay productos
+            productos_vendidos = request.session.get('productos_vendidos', [])
+            
+            # Agregamos el producto vendido a la lista
+            productos_vendidos.append({
+                'codigo': producto.codigo,
+                'nombre': producto.nombre,
+                'precio': producto.precio_publico,
+                'cantidad': cantidad,
+                'total': producto.precio_publico * cantidad
+            })
+
+            # Guardamos los productos vendidos en la sesión
+            request.session['productos_vendidos'] = productos_vendidos
+
+            return redirect('ventas')
+
     # Obtener el valor de la caja inicial (si existe)
     caja_inicial = request.session.get('caja_inicial', '')
+    
+    # Obtener los productos vendidos (si existen)
+    productos_vendidos = request.session.get('productos_vendidos', [])
 
-    return render(request, 'ventas.html', {'caja_inicial': caja_inicial, 'productos': productos})
+    # Convertir la lista de productos vendidos a JSON
+    productos_vendidos_json = json.dumps(productos_vendidos)
+
+    return render(request, 'ventas.html', {
+        'caja_inicial': caja_inicial,
+        'productos': productos,
+        'productos_vendidos_json': productos_vendidos_json,  # Pasamos los productos vendidos como JSON
+    })
+
+
 
 @login_required
 def obtener_producto(request):
@@ -150,7 +192,14 @@ def administrar_usuarios(request):
 
 @login_required
 def historial_ventas(request):
-    return render(request, 'historial_ventas.html')
+    # Obtener la fecha actual
+    today = timezone.now().date()
+
+    # Obtener las ventas realizadas en el día de hoy
+    ventas = HistorialVenta.objects.filter(fecha_venta__date=today)  # Filtrar por fecha de venta
+
+    return render(request, 'historial_ventas.html', {'ventas': ventas})
+
 
 @login_required
 def administrar_inventario(request):
@@ -226,4 +275,71 @@ def administrar_inventario(request):
         return redirect('administrar_inventario')
     
     return render(request, 'administrar_inventario.html', {'productos': productos})
+
+
+
+
+@login_required
+def cerrar_caja(request):
+    if request.method == 'POST':
+        # Obtener los productos vendidos desde el formulario
+        productos_vendidos_json = request.POST.get('productos_vendidos')
+
+        # Verificar si productos_vendidos_json no está vacío
+        if productos_vendidos_json:
+            # Convertir el JSON a una lista de productos
+            try:
+                productos_vendidos = json.loads(productos_vendidos_json)
+                
+                # Guardar las ventas en HistorialVenta
+                for producto_data in productos_vendidos:
+                    producto = Producto.objects.get(codigo=producto_data['codigo'])
+                    HistorialVenta.objects.create(
+                        producto=producto,
+                        cantidad=producto_data['cantidad'],
+                        precio=producto.precio_publico,
+                        total=producto_data['total']
+                    )
+                
+                # Limpiar productos vendidos de la sesión
+                request.session['productos_vendidos'] = []
+                return redirect('historial_ventas')
+            except json.JSONDecodeError:
+                # Si ocurre un error con el JSON, puedes manejarlo aquí
+                return render(request, 'error.html', {'message': 'Error al procesar los productos vendidos.'})
+
+    return redirect('ventas')
+
+def generar_pdf(request):
+    ventas = HistorialVenta.objects.all()  # Obtener todas las ventas
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="historial_ventas.pdf"'
+
+    c = canvas.Canvas(response, pagesize=letter)
+    c.drawString(100, 750, "Historial de Ventas")
+    y_position = 730
+
+    for venta in ventas:
+        c.drawString(100, y_position, f"Producto: {venta.producto.nombre}, Cantidad: {venta.cantidad}, Total: {venta.total}")
+        y_position -= 20
+
+    c.save()
+    return response
+
+
+def generar_excel(request):
+    ventas = HistorialVenta.objects.all()  # Obtener todas las ventas
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Ventas"
+    ws.append(["Producto", "Cantidad", "Precio", "Total"])
+
+    for venta in ventas:
+        ws.append([venta.producto.nombre, venta.cantidad, venta.precio, venta.total])
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="historial_ventas.xlsx"'
+    wb.save(response)
+
+    return response
 
