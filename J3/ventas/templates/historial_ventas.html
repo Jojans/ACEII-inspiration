@@ -44,11 +44,11 @@
                 <td>{{ venta.fecha|date:"d/m/Y" }}</td>
                 <td>{{ venta.total_dia }}</td>
                 <td>
-                    <a href="#" class="btn btn-info">Ver Detalle</a>
+                    <a href="{% url 'ver_detalle_venta' venta.id %}" class="btn btn-info">Ver Detalle</a>
                     <!-- Botón para generar CSV -->
-                    <a href="#" class="btn btn-secondary">CSV</a>
+                    <a href="{% url 'exportar_csv' venta.id %}" class="btn btn-secondary">Excel</a>
                     <!-- Botón para generar PDF -->
-                    <a href="#" class="btn btn-primary">PDF</a>
+                    <a href="{% url 'exportar_pdf' venta.id %}" class="btn btn-primary">PDF</a>
                     <!-- Botón para eliminar venta -->
                     <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminar{{ venta.id }}">Eliminar</button>
                 </td>

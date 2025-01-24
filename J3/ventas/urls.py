@@ -14,10 +14,10 @@ urlpatterns = [
     path('historial-ventas/', views.historial_ventas, name='historial_ventas'),
     path('administrar-inventario/', views.administrar_inventario, name='administrar_inventario'),
     path('historial_ventas/', views.historial_ventas, name='historial_ventas'),
-    path('generar_pdf/', views.generar_pdf, name='generar_pdf'),
-    path('generar_excel/', views.generar_excel, name='generar_excel'),
     path('cerrar-caja/', views.cerrar_caja, name='cerrar_caja'),  # Ruta para cerrar la caja
-    #path('detalle_venta/<int:id>/', views.ver_detalle_venta, name='ver_detalle_venta'),
+    path('detalle_venta/<int:venta_id>/', views.ver_detalle_venta, name='ver_detalle_venta'),
     path('eliminar_venta/<int:id>/', views.eliminar_venta, name='eliminar_venta'),
+    path('venta/<int:venta_id>/csv/', views.exportar_csv, name='exportar_csv'),
+    path('venta/<int:venta_id>/pdf/', views.exportar_pdf, name='exportar_pdf'),
 ]  
 

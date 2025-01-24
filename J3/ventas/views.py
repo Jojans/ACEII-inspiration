@@ -7,9 +7,14 @@ from .models import Producto
 from django.http import JsonResponse  
 from .models import Producto, Venta
 import json
-from datetime import date
 from django.utils import timezone
 import logging
+import csv
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import openpyxl
+
 
 def user_login(request):
     if request.method == 'POST':
@@ -335,19 +340,134 @@ def cerrar_caja(request):
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 
 def eliminar_venta(request, id):
-    # Obtener la venta por ID o mostrar error si no se encuentra
     venta = get_object_or_404(Venta, id=id)
-    
-    # Eliminar la venta
     venta.delete()
+    return redirect('historial_ventas')
+
+def ver_detalle_venta(request, venta_id):
+    try:
+        venta = Venta.objects.get(id=venta_id)
+    except Venta.DoesNotExist:
+        venta = None
+
+    if venta:
+        productos = venta.producto.split(',')
+        cantidades = venta.cantidad.split(',')
+        precios = venta.precio.split(',')
+        
+        # Verifica que todas las listas tengan la misma longitud
+        if len(productos) == len(cantidades) == len(precios):
+            detalles_productos = [
+                (producto, float(cantidad), float(precio)) 
+                for producto, cantidad, precio in zip(productos, cantidades, precios)
+            ]
+        else:
+            detalles_productos = []  # Si las listas no coinciden, se evita el error
+
+        # Calcular el total de la venta sumando los totales de cada producto
+        total_venta = sum(float(cantidad) * float(precio) for cantidad, precio in zip(cantidades, precios))
+    else:
+        detalles_productos = []
+        total_venta = 0.0
+
+    return render(request, 'detalle_venta.html', {
+        'venta': venta,
+        'detalles_productos': detalles_productos,
+        'total_venta': total_venta,  # Pasamos el total de la venta a la plantilla
+    })
+
+def exportar_csv(request, venta_id):
+    venta = Venta.objects.get(id=venta_id)
+    productos = venta.producto.split(',')
+    cantidades = venta.cantidad.split(',')
+    precios = venta.precio.split(',')
+    detalles_productos = zip(productos, cantidades, precios)
+
+    # Crear un libro de trabajo de Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Detalle Venta'
+
+    # Escribir encabezados
+    ws.append(['Fecha de Venta', 'Caja Inicial', 'Total de Venta', 'Total Día', 'Producto', 'Cantidad', 'Precio', 'Total Producto'])
+
+    # Calcular el total de la venta
+    total_venta = 0
+    for producto, cantidad, precio in detalles_productos:
+        total = float(cantidad) * float(precio)
+        total_venta += total
+
+    # Escribir los detalles de la venta
+    ws.append([venta.fecha.strftime('%d/%m/%Y'), venta.caja_inicial, total_venta, venta.total_dia, '', '', '', ''])
+
+    # Volver a las posiciones de productos
+    detalles_productos = zip(productos, cantidades, precios)
+
+    # Escribir los productos
+    for producto, cantidad, precio in detalles_productos:
+        total = float(cantidad) * float(precio)
+        ws.append(['', '', '', '', producto, cantidad, precio, total])
+
+    # Guardar el archivo Excel en un objeto BytesIO para enviarlo como respuesta
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="venta_{venta_id}.xlsx"'
     
-    # Redirigir al historial de ventas después de eliminar
-    return redirect('historial_ventas')  # Reemplaza 'historial_ventas' por la URL correcta de tu vista de historial
+    # Guardar el archivo Excel en la respuesta
+    wb.save(response)
 
-def generar_pdf(request):
-    return 0
+    return response
 
 
-def generar_excel(request):
-    return 0
+def exportar_pdf(request, venta_id):
+    venta = Venta.objects.get(id=venta_id)
+    productos = venta.producto.split(',')
+    cantidades = venta.cantidad.split(',')
+    precios = venta.precio.split(',')
+    detalles_productos = zip(productos, cantidades, precios)
 
+    # Crear una respuesta HttpResponse con el tipo de contenido PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="venta_{venta_id}.pdf"'
+
+    # Crear el canvas para el PDF
+    p = canvas.Canvas(response, pagesize=letter)
+    width, height = letter
+
+    # Escribir la cabecera con la información general
+    p.setFont("Helvetica", 12)
+    p.drawString(100, height - 40, f"Detalle de Venta {venta_id}")
+    p.drawString(100, height - 60, f"Fecha: {venta.fecha.strftime('%d/%m/%Y')}")
+    p.drawString(100, height - 80, f"Caja Inicial: {venta.caja_inicial}")
+    
+    # Calcular el total de la venta
+    total_venta = 0
+    y_position = height - 100
+    for producto, cantidad, precio in detalles_productos:
+        total = float(cantidad) * float(precio)
+        total_venta += total
+    p.drawString(100, y_position, f"Total de Venta: {total_venta}")
+    p.drawString(100, y_position - 20, f"Total del Día: {venta.total_dia}")
+
+    y_position -= 60
+
+    # Escribir los encabezados de la tabla
+    p.drawString(100, y_position, 'Producto')
+    p.drawString(200, y_position, 'Cantidad')
+    p.drawString(300, y_position, 'Precio')
+    p.drawString(400, y_position, 'Total')
+
+    y_position -= 20
+
+    # Escribir los productos
+    detalles_productos = zip(productos, cantidades, precios)
+    for producto, cantidad, precio in detalles_productos:
+        total = float(cantidad) * float(precio)
+        p.drawString(100, y_position, producto)
+        p.drawString(200, y_position, cantidad)
+        p.drawString(300, y_position, precio)
+        p.drawString(400, y_position, str(total))
+        y_position -= 20
+
+    p.showPage()
+    p.save()
+    return response
