@@ -17,5 +17,7 @@ urlpatterns = [
     path('generar_pdf/', views.generar_pdf, name='generar_pdf'),
     path('generar_excel/', views.generar_excel, name='generar_excel'),
     path('cerrar-caja/', views.cerrar_caja, name='cerrar_caja'),  # Ruta para cerrar la caja
+    #path('detalle_venta/<int:id>/', views.ver_detalle_venta, name='ver_detalle_venta'),
+    path('eliminar_venta/<int:id>/', views.eliminar_venta, name='eliminar_venta'),
 ]  
 

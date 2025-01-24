@@ -1,18 +1,15 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import Producto
 from django.http import JsonResponse  
-from .models import Producto, HistorialVenta
+from .models import Producto, Venta
 import json
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from django.http import HttpResponse
-from openpyxl import Workbook
+from datetime import date
 from django.utils import timezone
-
+import logging
 
 def user_login(request):
     if request.method == 'POST':
@@ -98,8 +95,6 @@ def ventas(request):
         'productos': productos,
         'productos_vendidos_json': productos_vendidos_json,  # Pasamos los productos vendidos como JSON
     })
-
-
 
 @login_required
 def obtener_producto(request):
@@ -191,14 +186,14 @@ def administrar_usuarios(request):
 
 @login_required
 def historial_ventas(request):
-    # Obtener la fecha actual
-    today = timezone.now().date()
-
-    # Obtener las ventas realizadas en el día de hoy
-    ventas = HistorialVenta.objects.filter(fecha_venta__date=today)  # Filtrar por fecha de venta
-
+    fecha_filtro = request.GET.get('fecha', None)
+    
+    if fecha_filtro:
+        ventas = Venta.objects.filter(fecha=fecha_filtro).order_by('-id')
+    else:
+        ventas = Venta.objects.all().order_by('-id')
+    
     return render(request, 'historial_ventas.html', {'ventas': ventas})
-
 
 @login_required
 def administrar_inventario(request):
@@ -273,70 +268,89 @@ def administrar_inventario(request):
     
     return render(request, 'administrar_inventario.html', {'productos': productos})
 
+# Crear un logger
+logger = logging.getLogger(__name__)
 
-
-
-@login_required
 def cerrar_caja(request):
     if request.method == 'POST':
-        # Obtener los productos vendidos desde el formulario
-        productos_vendidos_json = request.POST.get('productos_vendidos')
+        try:
+            data = json.loads(request.body)
+            caja_inicial = data.get('caja_inicial', 0)
+            productos_vendidos = data.get('productos_vendidos', [])
 
-        # Verificar si productos_vendidos_json no está vacío
-        if productos_vendidos_json:
-            # Convertir el JSON a una lista de productos
-            try:
-                productos_vendidos = json.loads(productos_vendidos_json)
-                
-                # Guardar las ventas en HistorialVenta
-                for producto_data in productos_vendidos:
-                    producto = Producto.objects.get(codigo=producto_data['codigo'])
-                    HistorialVenta.objects.create(
-                        producto=producto,
-                        cantidad=producto_data['cantidad'],
-                        precio=producto.precio_publico,
-                        total=producto_data['total']
-                    )
-                
-                # Limpiar productos vendidos de la sesión
-                request.session['productos_vendidos'] = []
-                return redirect('historial_ventas')
-            except json.JSONDecodeError:
-                # Si ocurre un error con el JSON, puedes manejarlo aquí
-                return render(request, 'error.html', {'message': 'Error al procesar los productos vendidos.'})
+            if caja_inicial is None:
+                return JsonResponse({'status': 'error', 'message': 'Caja inicial no proporcionada'}, status=400)
 
-    return redirect('ventas')
+            # Listas para almacenar las informaciones de los productos
+            cantidades = []
+            precios = []
+            productos = []
+            totales = []
+
+            # Recorrer los productos vendidos y extraer los datos
+            for producto_data in productos_vendidos:
+                nombre = producto_data['nombre']
+                precio = float(producto_data['precio'])
+                cantidad = int(producto_data['cantidad'])
+                total_producto = precio * cantidad
+
+                # Agregar los datos a las listas correspondientes
+                productos.append(nombre)
+                precios.append(f"{precio:.2f}")  # Asegurarse de que el precio tenga dos decimales
+                cantidades.append(str(cantidad))
+                totales.append(f"{total_producto:.2f}")  # Asegurarse de que el total tenga dos decimales
+
+            # Concatenar las listas en cadenas separadas por comas
+            cantidad_str = ",".join(cantidades)
+            precio_str = ",".join(precios)
+            producto_str = ",".join(productos)
+            total_str = ",".join(totales)
+
+            # Crear la venta con los datos obtenidos
+            venta = Venta.objects.create(
+                fecha=timezone.now().date(),
+                caja_inicial=caja_inicial,
+                total_dia=0.0,  # Este valor se calculará después
+                cantidad=cantidad_str,
+                precio=precio_str,
+                total_producto=total_str,
+                producto=producto_str
+            )
+
+            # Calcular el total de los productos vendidos (sumar los totales)
+            total_producto = sum(float(total) for total in totales)  # Sumar los totales de los productos vendidos
+
+            # Calcular total_dia (total de productos + caja inicial)
+            total_dia = total_producto + caja_inicial
+
+            # Actualizar el total_dia de la venta
+            venta.total_dia = total_dia
+            venta.save()
+
+            return JsonResponse({'status': 'ok', 'total_dia': venta.total_dia})
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+def eliminar_venta(request, id):
+    # Obtener la venta por ID o mostrar error si no se encuentra
+    venta = get_object_or_404(Venta, id=id)
+    
+    # Eliminar la venta
+    venta.delete()
+    
+    # Mostrar mensaje de éxito
+    messages.success(request, 'Venta eliminada correctamente.')
+    
+    # Redirigir al historial de ventas después de eliminar
+    return redirect('historial_ventas')  # Reemplaza 'historial_ventas' por la URL correcta de tu vista de historial
 
 def generar_pdf(request):
-    ventas = HistorialVenta.objects.all()  # Obtener todas las ventas
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="historial_ventas.pdf"'
-
-    c = canvas.Canvas(response, pagesize=letter)
-    c.drawString(100, 750, "Historial de Ventas")
-    y_position = 730
-
-    for venta in ventas:
-        c.drawString(100, y_position, f"Producto: {venta.producto.nombre}, Cantidad: {venta.cantidad}, Total: {venta.total}")
-        y_position -= 20
-
-    c.save()
-    return response
+    return 0
 
 
 def generar_excel(request):
-    ventas = HistorialVenta.objects.all()  # Obtener todas las ventas
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Ventas"
-    ws.append(["Producto", "Cantidad", "Precio", "Total"])
-
-    for venta in ventas:
-        ws.append([venta.producto.nombre, venta.cantidad, venta.precio, venta.total])
-
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="historial_ventas.xlsx"'
-    wb.save(response)
-
-    return response
+    return 0
 

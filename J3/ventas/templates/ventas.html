@@ -58,7 +58,7 @@
             </div>
             <div class="input-group">
                 <label for="caja_inicial">Caja Inicial del Día</label>
-                <input type="text" id="caja_inicial" name="caja_inicial" value="{{ caja_inicial }}" disabled>
+                <input type="text" id="caja_inicial" name="caja_inicial" value="{{ caja_inicial }}">
             </div>
             <div class="input-group">
                 <label for="efectivo_en_caja">Efectivo en Caja</label>
@@ -94,10 +94,11 @@
     {% csrf_token %}
     <!-- Campo oculto para enviar los productos vendidos como JSON -->
     <input type="hidden" name="productos_vendidos" value="{{ productos_vendidos_json }}">
+
+    <!-- Campo oculto para enviar el valor de la caja inicial -->
+    <input type="hidden" name="caja_inicial" id="caja_inicial_input" value="{{ caja_inicial }}">
     
-    <button type="submit" class="btn btn-secondary btn-lg float-end">
-        Cerrar Caja
-    </button>
+    <button type="button" class="btn btn-secondary btn-lg float-end" id="cerrarCajaBtn" >Cerrar Caja</button>
 </form>
 
 <!-- Modal para fijar caja inicial -->
@@ -128,46 +129,27 @@
     <!-- Modal de confirmación de cierre de caja -->
     <div class="modal fade" id="confirmCerrarCajaModal" tabindex="-1" aria-labelledby="confirmCerrarCajaModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-            <h5 class="modal-title" id="confirmCerrarCajaModalLabel">Confirmar Cierre de Caja</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-            </div>
-            <div class="modal-body">
-            ¿Está seguro de que desea cerrar la caja? Esta acción eliminará los productos de la venta.
-            </div>
-            <div class="modal-footer">
-            <!-- El botón "No" ahora tiene el atributo data-dismiss="modal" -->
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-            <button type="button" class="btn btn-danger" id="confirmCerrarCajaBtn">Sí, cerrar caja</button>
-            </div>
-        </div>
-        </div>
-
-        <!-- Modal de Error -->
-        <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="errorModalLabel">Error</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Por favor, ingresa un código de producto o código de barras.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmCerrarCajaModalLabel">Confirmar Cierre de Caja</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    ¿Está seguro de que desea cerrar la caja? Esta acción eliminará los productos de la venta.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelarCerrarCajaBtn">No</button>
+                    <button type="button" class="btn btn-danger" id="confirmCerrarCajaBtn">Sí, cerrar caja</button>
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -177,15 +159,35 @@
             const ventasDiaInput = document.getElementById('ventas_dia');
             const efectivoEnCajaInput = document.getElementById('efectivo_en_caja');
             const cajaInicialInput = document.getElementById('caja_inicial');
+            const valorCajaInicialInput = document.getElementById('valor_caja_inicial');
+            const guardarCajaInicialBtn = document.querySelector('#setCajaInicialModal button[type="submit"]');
             const gananciasInput = document.getElementById('ganancias');
             const deleteButton = document.querySelector('.button-red');
 
             // Recuperar los productos guardados en localStorage
             const savedProducts = JSON.parse(localStorage.getItem('products')) || [];
+            document.querySelector('input[name="productos_vendidos"]').value = JSON.stringify(savedProducts);
 
-            // Recuperar el valor de la caja inicial desde localStorage
+            // Recuperar el valor de la caja inicial
             const savedCajaInicial = parseFloat(localStorage.getItem('caja_inicial')) || 0;
             cajaInicialInput.value = savedCajaInicial.toFixed(2);
+
+            guardarCajaInicialBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+                const valorCajaInicial = parseFloat(valorCajaInicialInput.value) || 0;
+                if (valorCajaInicial < 0) {
+                    alert("La caja inicial no puede ser un valor negativo.");
+                    return;
+                }
+                cajaInicialInput.value = valorCajaInicial.toFixed(2);
+                localStorage.setItem('caja_inicial', valorCajaInicial.toFixed(2));
+                $('#setCajaInicialModal').modal('hide');
+            });
+
+            // Evento para confirmar el cierre de caja
+            document.getElementById('cerrarCajaBtn').addEventListener('click', function () {
+                $('#confirmCerrarCajaModal').modal('show');
+            });
 
             // Función para agregar una fila a la tabla
             function addRowToTable(product) {
@@ -300,7 +302,7 @@
                             // Crear el objeto producto
                             const product = {
                                 nombre: data.nombre,
-                                precio: data.precio,
+                                precio: parseFloat(data.precio),
                                 cantidad: parseInt(cantidad, 10),
                                 codigo: data.codigo,
                                 hora: new Date().toLocaleTimeString()
@@ -340,39 +342,44 @@
                 }
             });
 
-            // Manejar el clic en el botón "Fijar Caja Inicial" en el modal
-            document.querySelector('#setCajaInicialModal button[type="submit"]').addEventListener('click', function(event) {
-                event.preventDefault();  // Prevenir el comportamiento por defecto del formulario
-
-                // Obtener el valor de la caja inicial ingresado en el modal
-                const valorCajaInicial = parseFloat(document.getElementById('valor_caja_inicial').value) || 0;
-
-                // Actualizar el campo Caja Inicial en la interfaz principal
-                cajaInicialInput.value = valorCajaInicial.toFixed(2);
-
-                // Guardar el valor en localStorage
-                localStorage.setItem('caja_inicial', valorCajaInicial.toFixed(2));
-
-                // Cerrar el modal
-                $('#setCajaInicialModal').modal('hide');
-
-                // Recalcular el efectivo en caja
-                calculateTotalSales();
-            });
-
-            // Manejar el clic en el botón "Cerrar Caja"
+            // Cerrar Caja
             document.getElementById('cerrarCajaBtn').addEventListener('click', function() {
-                // Mostrar el modal de confirmación
                 $('#confirmCerrarCajaModal').modal('show');
             });
 
-            // Evento cuando se confirma el cierre de caja
+            // Confirmar el cierre de caja
             document.getElementById('confirmCerrarCajaBtn').addEventListener('click', function() {
-                localStorage.removeItem('products');  // Eliminar productos del localStorage
+                const cajaInicial = parseFloat(document.getElementById('caja_inicial').value) || 0;
+                console.log("Caja inicial antes de enviar:", cajaInicial);
+                fetch("{% url 'cerrar_caja' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        caja_inicial: cajaInicial,
+                        productos_vendidos: JSON.parse(localStorage.getItem('products')) || []
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        console.log("Caja inicial cerrada correctamente:", data.caja_inicial);
+                    } else {
+                        console.error("Error al cerrar la caja:", data.message);
+                    }
+                    $('#confirmCerrarCajaModal').modal('hide');
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error("Error en la solicitud AJAX:", error);
+                    $('#confirmCerrarCajaModal').modal('hide');
+                });
+            });
 
-                actualizarTablaProductos();  // Esta es una función ficticia para actualizar la tabla
-
-                // Cerrar el modal después de la confirmación
+            // Cerrar el modal cuando se hace clic en "No"
+            document.getElementById('cancelarCerrarCajaBtn').addEventListener('click', function() {
                 $('#confirmCerrarCajaModal').modal('hide');
             });
 
@@ -380,16 +387,6 @@
             function actualizarTablaProductos() {
                 location.reload();  // Recargar la página para actualizar la tabla vacía
             }
-
-            // Cerrar el modal si se hace clic en el botón No
-            $('#confirmCerrarCajaModal .btn-secondary').click(function() {
-                $('#confirmCerrarCajaModal').modal('hide');
-            });
-
-            // Cerrar el modal al hacer clic en la X
-            $('#confirmCerrarCajaModal .close').click(function() {
-                $('#confirmCerrarCajaModal').modal('hide');
-            });
         });
 
     </script>
