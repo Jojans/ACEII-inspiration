@@ -18,7 +18,6 @@
                 <th>Código</th>
                 <th>Código de Barras</th>
                 <th>Nombre</th>
-                <th>Cantidad</th>
                 <th>Precio Interno</th>
                 <th>Precio Público</th>
                 <th>Acciones</th>
@@ -30,7 +29,6 @@
                 <td>{{ producto.codigo }}</td>
                 <td>{{ producto.codigo_barras }}</td>
                 <td>{{ producto.nombre }}</td>
-                <td>{{ producto.cantidad }}</td>
                 <td>${{ producto.precio_interno }}</td>
                 <td>${{ producto.precio_publico }}</td>
                 <td>
@@ -41,15 +39,6 @@
                             onclick="setDeleteProduct('{{ producto.id }}')">
                             Eliminar
                         </button>
-                    </form>
-                    <form method="POST" style="display:inline;">
-                        {% csrf_token %}
-                        <!-- Botón para modificar cantidad -->
-                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modifyQuantityModal" 
-                        onclick="setModifyProduct('{{ producto.id }}', '{{ producto.cantidad }}')">
-                        Modificar Cantidad
-                        </button>
-                        
                     </form>
                     <form method="POST" style="display:inline;">
                         {% csrf_token %}
@@ -96,10 +85,6 @@
                         <input type="text" class="form-control" id="nombre" name="nombre" required>
                     </div>
                     <div class="mb-3">
-                        <label for="cantidad" class="form-label">Cantidad</label>
-                        <input type="number" class="form-control" id="cantidad" name="cantidad" min="1" required>
-                    </div>
-                    <div class="mb-3">
                         <label for="precio_interno" class="form-label">Precio Interno</label>
                         <input type="number" step="0.01" class="form-control" id="precio_interno" name="precio_interno" required>
                     </div>
@@ -131,29 +116,6 @@
                     {% csrf_token %}
                     <input type="hidden" name="producto_id" id="deleteProductId">
                     <button type="submit" name="eliminar_producto" class="btn btn-danger">Eliminar</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para modificar cantidad -->
-<div class="modal fade" id="modifyQuantityModal" tabindex="-1" aria-labelledby="modifyQuantityModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modifyQuantityModalLabel">Modificar Cantidad</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form method="POST" id="modifyQuantityForm">
-                    {% csrf_token %}
-                    <input type="hidden" name="producto_id" id="modifyProductId">
-                    <div class="mb-3">
-                        <label for="newQuantity" class="form-label">Nueva Cantidad</label>
-                        <input type="number" class="form-control" id="newQuantity" name="nueva_cantidad" min="1" required>
-                    </div>
-                    <button type="submit" name="modificar_cantidad" class="btn btn-warning">Actualizar</button>
                 </form>
             </div>
         </div>

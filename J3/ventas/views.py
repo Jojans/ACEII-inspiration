@@ -76,7 +76,6 @@ def ventas(request):
                 'codigo': producto.codigo,
                 'nombre': producto.nombre,
                 'precio': producto.precio_publico,
-                'cantidad': cantidad,
                 'total': producto.precio_publico * cantidad
             })
 
@@ -210,17 +209,15 @@ def administrar_inventario(request):
         codigo = request.POST.get('codigo')
         codigo_barras = request.POST.get('codigo_barras')
         nombre = request.POST.get('nombre')
-        cantidad = request.POST.get('cantidad')
         precio_interno = request.POST.get('precio_interno')
         precio_publico = request.POST.get('precio_publico')
 
-        if all([codigo, codigo_barras, nombre, cantidad, precio_interno, precio_publico]):
+        if all([codigo, codigo_barras, nombre, precio_interno, precio_publico]):
             try:
                 Producto.objects.create(
                     codigo=codigo,
                     codigo_barras=codigo_barras,
                     nombre=nombre,
-                    cantidad=int(cantidad),
                     precio_interno=float(precio_interno),
                     precio_publico=float(precio_publico),
                 )

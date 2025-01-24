@@ -38,7 +38,6 @@
                         <tr>
                             <th>Producto</th>
                             <th>Precio</th>
-                            <th>Cantidad</th>
                             <th>Hora</th>
                             <th>Check</th>
                         </tr>
@@ -80,24 +79,7 @@
             </div>
         </div>
     </div>
-
-<!--     <div class="mt-4">
-
-        <a href="{% url 'lobby' %}" class="btn btn-danger btn-lg">Regresar</a>
-
-        
-        <button type="button" class="btn btn-primary btn-lg float-end" data-bs-toggle="modal" data-bs-target="#setCajaInicialModal">
-            Fijar Caja Inicial
-        </button>    
-
-        
-        <button type="button" class="btn btn-secondary btn-lg float-end" id="cerrarCajaBtn">
-            Cerrar Caja
-        </button>
-    </div>
--->
     
-
 <div class="mt-4">
     <a href="{% url 'lobby' %}" class="btn btn-danger btn-lg">Regresar</a>
 
@@ -105,11 +87,6 @@
     <button type="button" class="btn btn-primary btn-lg float-end" data-bs-toggle="modal" data-bs-target="#setCajaInicialModal">
         Fijar Caja Inicial
     </button>    
-
-    <!-- Botón Cerrar Caja -->
-    <button type="button" class="btn btn-secondary btn-lg float-end" id="cerrarCajaBtn" data-bs-toggle="modal" data-bs-target="#confirmCerrarCajaModal">
-        Cerrar Caja
-    </button>
 </div>
 
 <!-- Formulario para Cerrar Caja -->
@@ -122,8 +99,6 @@
         Cerrar Caja
     </button>
 </form>
-
-
 
 <!-- Modal para fijar caja inicial -->
     <div class="modal fade" id="setCajaInicialModal" tabindex="-1" aria-labelledby="setCajaInicialLabel" aria-hidden="true">
