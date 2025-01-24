@@ -87,9 +87,11 @@
             <span>{{ request.user.username }}</span>
           </a>
           <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+            <!--
             <div class="dropdown-item">
               <strong>Nombre:</strong> {{ request.user.first_name }} {{ request.user.last_name }}
             </div>
+            -->
             <div class="dropdown-item">
               <strong>Email:</strong> {{ request.user.email }}
             </div>
@@ -98,9 +100,11 @@
             </div>
             {% if request.user.is_superuser %}
             <div class="dropdown-divider"></div>
+            <!--
             <a href="/admin/" class="dropdown-item text-primary">
               <i class="fas fa-tools"></i> Administrar Sistema
             </a>
+            -->
             {% endif %}
             <div class="dropdown-divider"></div>
             <a href="{% url 'logout' %}" id="logoutBtn" class="dropdown-item text-danger">
@@ -113,112 +117,7 @@
     </nav>
     <!-- /.navbar -->
 
-    <!-- Main Sidebar Container -->
-    <aside class="main-sidebar sidebar-dark-primary elevation-4">
-      <!-- Brand Logo -->
-      <a href="{% url 'lobby' %}" class="brand-link">
-        <img src="{% static 'index/img/logo.png' %}" alt="Logo" class="brand-image img-circle elevation-3"
-          style="opacity: .8">
-        <span class="brand-text font-weight-light">Sistema</span>
-      </a>
-
-      <!-- Sidebar -->
-      <div class="sidebar">
-
-        <!-- Sidebar Menu -->
-        <nav class="mt-2">
-          <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-            <!-- Add icons to the links using the .nav-icon class
-               with font-awesome or any other icon font library -->
-
-            <!-- <li class="nav-header">OPCIONES</li>
-            <li class="nav-item">
-              <a href="{% url 'lobby' %}" class="nav-link">
-                <i class="nav-icon far fa-calendar-alt"></i>
-                <p>
-                  Ventas
-                </p>
-              </a>
-            </li> -->
-            <li class="nav-item">
-              <a href="" class="nav-link">
-                <i class="nav-icon fas fa-boxes"></i>
-                <p>
-                  Inventario
-                </p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="" class="nav-link">
-                <i class="nav-icon fas fa-industry"></i>
-                <p>
-                  Compras
-                </p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="{% url 'ventas' %}" class="nav-link">
-                <i class="fas fa-shopping-cart"></i>
-                <p>
-                  Ventas
-                </p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="" class="nav-link">
-                <i class="nav-icon fas fa-users-cog"></i>
-                <p>Proveedores</p>
-              </a>
-            </li>
-            <li class="nav-item">
-<!--               <a href="#" class="nav-link">
-                <i class="nav-icon fas fa-tachometer-alt"></i>
-                <p>
-                  Pedidos
-                  <i class="fas fa-angle-left right"></i>
-                </p>
-              </a> -->
-              <ul class="nav nav-treeview">
-                <li class="nav-item">
-                  <a href="" class="nav-link">
-                    <i class="nav-icon far fa-circle text-info"></i>
-                    <p>Todos</p>
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a href="" class="nav-link">
-                    <i class="nav-icon far fa-circle text-warning"></i>
-                    <p>Para hoy</p>
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a href="" class="nav-link">
-                    <i class="nav-icon far fa-circle text-danger"></i>
-                    <p>Atrasados</p>
-                  </a>
-                </li>
-              </ul>
-            </li>
-            <li class="nav-header"></li>
-<!--             <li class="nav-item">
-              <a href="" class="nav-link">
-                <i class=" nav-icon fas fa-globe"></i>
-                <p>Información</p>
-              </a>
-            </li> -->
-<!-- 
-            <li class="nav-item">
-              <a href="" class="nav-link">
-                <i class="nav-icon fas fa-chart-line"></i>
-                <p> Reportes </p>
-              </a>
-            </li> -->
-          </ul>
-        </nav>
-        <!-- /.sidebar-menu -->
-      </div>
-      <!-- /.sidebar -->
-    </aside>
+    
 
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">

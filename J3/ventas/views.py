@@ -341,9 +341,6 @@ def eliminar_venta(request, id):
     # Eliminar la venta
     venta.delete()
     
-    # Mostrar mensaje de éxito
-    messages.success(request, 'Venta eliminada correctamente.')
-    
     # Redirigir al historial de ventas después de eliminar
     return redirect('historial_ventas')  # Reemplaza 'historial_ventas' por la URL correcta de tu vista de historial
 

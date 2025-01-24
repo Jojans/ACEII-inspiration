@@ -58,7 +58,7 @@
             </div>
             <div class="input-group">
                 <label for="caja_inicial">Caja Inicial del Día</label>
-                <input type="text" id="caja_inicial" name="caja_inicial" value="{{ caja_inicial }}">
+                <input type="text" id="caja_inicial" name="caja_inicial" value="{{ caja_inicial }}" disabled>
             </div>
             <div class="input-group">
                 <label for="efectivo_en_caja">Efectivo en Caja</label>
@@ -217,9 +217,10 @@
 
             // Función para actualizar la tabla con los productos guardados
             function updateTableFromStorage() {
-                tableBody.innerHTML = ''; // Limpiar la tabla actual
+                tableBody.innerHTML = ''; 
+                const savedProducts = JSON.parse(localStorage.getItem('products')) || [];
                 savedProducts.forEach(product => {
-                    addRowToTable(product); // Agregar cada producto a la tabla
+                    addRowToTable(product);
                 });
             }   
 
@@ -369,6 +370,8 @@
                     } else {
                         console.error("Error al cerrar la caja:", data.message);
                     }
+                    tableBody.innerHTML = '';
+                    localStorage.removeItem('products');
                     $('#confirmCerrarCajaModal').modal('hide');
                     location.reload();
                 })
